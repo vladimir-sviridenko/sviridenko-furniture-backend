@@ -1,10 +1,15 @@
 package main
 
 import (
+	"bytes"
 	"encoding/json"
+	"fmt"
 	"io/ioutil"
 	"net/http"
+	"net/smtp"
 	"os"
+
+	"github.com/labstack/gommon/log"
 )
 
 func getConfig() (*Config, error) {
@@ -23,13 +28,68 @@ func getConfig() (*Config, error) {
 	return &cfg, nil
 }
 
+type EmailForm struct {
+	Subject     string `json:"subject"`
+	SendTo      string `json:"send_to"`
+	SendCopyTo  string `json:"send_copy_to"`
+	HtmlMessage string `json:"html_message"`
+}
+
+type View struct {
+	config *Config
+}
+
+func (v *View) Register(mux *http.ServeMux) {
+	mux.HandleFunc("/send-email", v.SendEmail)
+}
+
+func (v *View) SendEmail(resp http.ResponseWriter, req *http.Request) {
+	var form EmailForm
+	if err := json.NewDecoder(req.Body).Decode(&form); err != nil {
+		log.Warn(err)
+		resp.WriteHeader(http.StatusBadRequest)
+		return
+	}
+	auth := smtp.PlainAuth(
+		"",
+		v.config.Email.Username,
+		v.config.Email.Password,
+		v.config.Email.Host,
+	)
+	var message bytes.Buffer
+	message.WriteString(fmt.Sprintf("From: %q\r\n", v.config.Email.Username))
+	message.WriteString(fmt.Sprintf("To: %q\r\n", form.SendTo))
+	message.WriteString(fmt.Sprintf("cc: %q\r\n", form.SendCopyTo))
+	message.WriteString(fmt.Sprintf("Subject: %s\r\n", form.Subject))
+	message.WriteString("\r\n")
+	message.WriteString(form.HtmlMessage)
+	if err := smtp.SendMail(
+		fmt.Sprintf("%s:%d", v.config.Email.Host, v.config.Email.Port),
+		auth,
+		v.config.Email.Username,
+		[]string{form.SendTo, form.SendCopyTo},
+		message.Bytes(),
+	); err != nil {
+		log.Error(err)
+		resp.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+	resp.WriteHeader(http.StatusOK)
+}
+
 func main() {
 	cfg, err := getConfig()
 	if err != nil {
 		panic(err)
 	}
+	mux := http.ServeMux{}
 	srv := http.Server{
-		Addr: cfg.Server.Addr,
+		Addr:    cfg.Server.Addr,
+		Handler: &mux,
 	}
-	srv.ListenAndServe()
+	view := View{config: cfg}
+	view.Register(&mux)
+	if err := srv.ListenAndServe(); err != nil {
+		panic(err)
+	}
 }

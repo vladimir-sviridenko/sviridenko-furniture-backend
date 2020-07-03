@@ -31,7 +31,6 @@ func getConfig() (*Config, error) {
 type EmailForm struct {
 	Subject     string `json:"subject"`
 	SendTo      string `json:"send_to"`
-	SendCopyTo  string `json:"send_copy_to"`
 	HtmlMessage string `json:"html_message"`
 }
 
@@ -59,7 +58,6 @@ func (v *View) SendEmail(resp http.ResponseWriter, req *http.Request) {
 	var message bytes.Buffer
 	message.WriteString(fmt.Sprintf("From: %q\r\n", v.config.Email.Username))
 	message.WriteString(fmt.Sprintf("To: %q\r\n", form.SendTo))
-	message.WriteString(fmt.Sprintf("cc: %q\r\n", form.SendCopyTo))
 	message.WriteString(fmt.Sprintf("Subject: %s\r\n", form.Subject))
 	message.WriteString("\r\n")
 	message.WriteString(form.HtmlMessage)
@@ -67,7 +65,7 @@ func (v *View) SendEmail(resp http.ResponseWriter, req *http.Request) {
 		fmt.Sprintf("%s:%d", v.config.Email.Host, v.config.Email.Port),
 		auth,
 		v.config.Email.Username,
-		[]string{form.SendTo, form.SendCopyTo},
+		[]string{form.SendTo},
 		message.Bytes(),
 	); err != nil {
 		log.Error(err)

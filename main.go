@@ -40,7 +40,7 @@ type View struct {
 }
 
 func (v *View) Register(mux *http.ServeMux) {
-	mux.HandleFunc("/send-email", v.SendEmail)
+	mux.HandleFunc("/api/send-email", v.SendEmail)
 }
 
 func (v *View) SendEmail(resp http.ResponseWriter, req *http.Request) {

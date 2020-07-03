@@ -59,7 +59,7 @@ func (v *View) SendEmail(resp http.ResponseWriter, req *http.Request) {
 	message.WriteString(fmt.Sprintf("From: %q\r\n", v.config.Email.Username))
 	message.WriteString(fmt.Sprintf("To: %q\r\n", form.SendTo))
 	message.WriteString(fmt.Sprintf("Subject: %s\r\n", form.Subject))
-	message.WriteString("\r\n")
+	message.WriteString("MIME-version: 1.0;\nContent-Type: text/html; charset=\"UTF-8\";\n\n")
 	message.WriteString(form.HtmlMessage)
 	if err := smtp.SendMail(
 		fmt.Sprintf("%s:%d", v.config.Email.Host, v.config.Email.Port),

@@ -56,7 +56,7 @@ func (v *View) SendEmail(resp http.ResponseWriter, req *http.Request) {
 		v.config.Email.Host,
 	)
 	var message bytes.Buffer
-	message.WriteString(fmt.Sprintf("From: %q\r\n", v.config.Email.Username))
+	message.WriteString("From: Sviridenko Furniture \r\n")
 	message.WriteString(fmt.Sprintf("To: %q\r\n", form.SendTo))
 	message.WriteString(fmt.Sprintf("Subject: %s\r\n", form.Subject))
 	message.WriteString("MIME-version: 1.0;\nContent-Type: text/html; charset=\"UTF-8\";\n\n")
